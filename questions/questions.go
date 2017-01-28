@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	hwrandom "github.com/yale-cpsc-213/hwutils/random"
+	hwstrings "github.com/yale-cpsc-213/hwutils/strings"
 )
 
 type serverQuestion func(string, string) (bool, string, error)
@@ -37,6 +40,8 @@ func TestAll(rawURL string, showOutput bool) error {
 		indexIsUp,
 		protected,
 		stringUpperCase,
+		stringReverse,
+		stringConcatenate,
 	}
 	for _, question := range questions {
 		passed, questionText, err := question(parsedURL.Scheme, parsedURL.Host)
@@ -137,7 +142,7 @@ func protected(scheme string, baseURL string) (bool, string, error) {
 }
 
 func stringUpperCase(scheme string, baseURL string) (bool, string, error) {
-	questionText := "Strings API converts to uppercase"
+	questionText := "Strings API can convert to uppercase"
 	query := url.Values{}
 	randomString := hwrandom.LowerString(50)
 	query.Set("value", randomString)
@@ -148,5 +153,40 @@ func stringUpperCase(scheme string, baseURL string) (bool, string, error) {
 		query,
 		questionText,
 		strings.ToUpper(randomString),
+	)
+}
+
+func stringReverse(scheme string, baseURL string) (bool, string, error) {
+	questionText := "Strings API can reverse strings"
+	query := url.Values{}
+	randomString := hwrandom.LowerString(50)
+	query.Set("value", randomString)
+	return getAndCheckBody(
+		scheme,
+		baseURL,
+		"/strings/reverse",
+		query,
+		questionText,
+		hwstrings.Reverse(randomString),
+	)
+}
+func stringConcatenate(scheme string, baseURL string) (bool, string, error) {
+	questionText := "Strings API can concatenate"
+	query := url.Values{}
+	randomString := hwrandom.LowerString(50)
+	query.Set("value", randomString)
+	times := rand.Intn(5) + 1
+	query.Set("times", strconv.Itoa(times))
+	expectedBody := ""
+	for i := 0; i < times; i++ {
+		expectedBody += randomString
+	}
+	return getAndCheckBody(
+		scheme,
+		baseURL,
+		"/strings/concatenate",
+		query,
+		questionText,
+		expectedBody,
 	)
 }
