@@ -3,6 +3,8 @@ package questions
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"time"
 )
 
@@ -23,7 +25,7 @@ func TestAll(url string, showOutput bool) error {
 		}
 	}
 
-	questions := []serverQuestion{indexIsUp}
+	questions := []serverQuestion{indexIsUp, protected}
 	for _, question := range questions {
 		passed, questionText, err := question(url)
 		doLog(statusText(passed && (err == nil)), "-", questionText)
@@ -38,15 +40,41 @@ func newClient() *http.Client {
 	return netClient
 }
 
-func indexIsUp(url string) (bool, string, error) {
-	testDesc := fmt.Sprintf("Your website is up (requesting %s)", url)
-	netClient := newClient()
-	response, err := netClient.Get(url)
+func testStatusEquals(response *http.Response, err error, questionText string, expectedStatus int) (bool, string, error) {
 	if err != nil {
-		return false, testDesc, err
+		return false, questionText, err
 	}
-	if response.StatusCode == http.StatusOK {
-		return true, testDesc, nil
+	if response.StatusCode == expectedStatus {
+		return true, questionText, nil
 	}
-	return false, testDesc, nil
+	return false, questionText, nil
+}
+
+func getAndCheckStatus(baseURL string, urlPath string, questionText string, expectedStatus int) (bool, string, error) {
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return false, questionText, err
+	}
+	parsedURL.Path = path.Join(parsedURL.Path, urlPath)
+	netClient := newClient()
+	response, err := netClient.Get(parsedURL.String())
+	return testStatusEquals(response, err, questionText, expectedStatus)
+
+}
+
+func indexIsUp(baseURL string) (bool, string, error) {
+	return getAndCheckStatus(
+		baseURL,
+		"/",
+		"Your website is up (requesting /)",
+		http.StatusOK,
+	)
+}
+func protected(baseURL string) (bool, string, error) {
+	return getAndCheckStatus(
+		baseURL,
+		"/protected",
+		"Some parts are protected",
+		http.StatusUnauthorized,
+	)
 }
