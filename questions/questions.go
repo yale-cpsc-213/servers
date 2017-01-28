@@ -78,16 +78,13 @@ func readResponseBody(response *http.Response) (string, error) {
 
 func testBodyEquals(response *http.Response, err error, questionText string, expectedBody string) (bool, string, error) {
 	if err != nil {
-		log.Println("error!")
 		return false, questionText, err
 	}
 	dump, err2 := readResponseBody(response)
 	if err2 != nil {
-		log.Println("error!")
 		return false, questionText, err
 	}
 	body := strings.Trim(string(dump), " ")
-	log.Println("Body =", body)
 	if body == expectedBody {
 		return true, questionText, nil
 	}
