@@ -41,6 +41,7 @@ func TestAll(rawURL string, showOutput bool) error {
 		stringUpperCase,
 		stringReverse,
 		stringConcatenate,
+		movieIndex,
 	}
 	for _, question := range questions {
 		passed, questionText, err := question(parsedURL.Scheme, parsedURL.Host)
@@ -183,5 +184,16 @@ func stringConcatenate(scheme string, baseURL string) (bool, string, error) {
 		query,
 		questionText,
 		expectedBody,
+	)
+}
+
+func movieIndex(scheme string, baseURL string) (bool, string, error) {
+	return getAndCheckStatus(
+		scheme,
+		baseURL,
+		"/movies",
+		url.Values{},
+		"There is a movie index page",
+		http.StatusOK,
 	)
 }
