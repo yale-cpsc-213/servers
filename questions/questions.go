@@ -3,7 +3,6 @@ package questions
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -100,7 +99,6 @@ func getAndCheckStatus(scheme string, host string, urlPath string, query url.Val
 	}
 	netClient := newClient()
 	response, err := netClient.Get(parsedURL.String())
-	log.Println(parsedURL.String())
 	return testStatusEquals(response, err, questionText, expectedStatus)
 }
 
