@@ -9,9 +9,7 @@ import (
 )
 
 const usage string = `
-Creates and grades server homework for CPSC213
-
-Usage (three possible commands):
+Creates and grades server homework for CPSC213. Usage:
 cpsc213servers test URL
 `
 
