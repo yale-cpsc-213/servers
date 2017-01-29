@@ -99,7 +99,9 @@ func testBodyEquals(response *http.Response, err error, questionText string, exp
 }
 
 func testResponse(response *http.Response, err error, questionText string, testFunc responseTester) (bool, string, error) {
-
+	if err != nil {
+		return false, questionText, nil
+	}
 	result, err := testFunc(response)
 	if result && err == nil {
 		return true, questionText, nil
