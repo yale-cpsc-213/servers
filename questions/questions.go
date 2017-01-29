@@ -1,8 +1,10 @@
 package questions
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -10,11 +12,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
+
+	"golang.org/x/net/html"
+
 	hwrandom "github.com/yale-cpsc-213/hwutils/random"
 	hwstrings "github.com/yale-cpsc-213/hwutils/strings"
 )
 
 type serverQuestion func(string, string) (bool, string, error)
+type responseTester func(*http.Response) (bool, error)
 
 func statusText(pass bool) string {
 	if pass {
@@ -41,7 +48,7 @@ func TestAll(rawURL string, showOutput bool) error {
 		stringUpperCase,
 		stringReverse,
 		stringConcatenate,
-		movieIndex,
+		// movieIndex,
 	}
 	for _, question := range questions {
 		passed, questionText, err := question(parsedURL.Scheme, parsedURL.Host)
@@ -91,6 +98,27 @@ func testBodyEquals(response *http.Response, err error, questionText string, exp
 	return false, questionText, nil
 }
 
+func testResponse(response *http.Response, err error, questionText string, testFunc responseTester) (bool, string, error) {
+
+	result, err := testFunc(response)
+	if result && err == nil {
+		return true, questionText, nil
+	}
+	return false, questionText, nil
+}
+
+func getAndCheckFunction(scheme string, host string, urlPath string, query url.Values, questionText string, testFunc responseTester) (bool, string, error) {
+	parsedURL := url.URL{
+		Scheme:   scheme,
+		Host:     host,
+		Path:     urlPath,
+		RawQuery: query.Encode(),
+	}
+	netClient := newClient()
+	response, err := netClient.Get(parsedURL.String())
+	return testResponse(response, err, questionText, testFunc)
+}
+
 func getAndCheckStatus(scheme string, host string, urlPath string, query url.Values, questionText string, expectedStatus int) (bool, string, error) {
 	parsedURL := url.URL{
 		Scheme:   scheme,
@@ -104,15 +132,24 @@ func getAndCheckStatus(scheme string, host string, urlPath string, query url.Val
 }
 
 func getAndCheckBody(scheme string, host string, urlPath string, query url.Values, questionText string, expectedBody string) (bool, string, error) {
-	parsedURL := url.URL{
-		Scheme:   scheme,
-		Host:     host,
-		Path:     urlPath,
-		RawQuery: query.Encode(),
+	testFunc := func(response *http.Response) (bool, error) {
+		body, err := readResponseBody(response)
+		if err != nil {
+			return false, err
+		}
+		if body == expectedBody {
+			return true, nil
+		}
+		return false, nil
 	}
-	netClient := newClient()
-	response, err := netClient.Get(parsedURL.String())
-	return testBodyEquals(response, err, questionText, expectedBody)
+	return getAndCheckFunction(
+		scheme,
+		host,
+		urlPath,
+		query,
+		questionText,
+		testFunc,
+	)
 }
 
 func indexIsUp(scheme string, baseURL string) (bool, string, error) {
@@ -187,13 +224,33 @@ func stringConcatenate(scheme string, baseURL string) (bool, string, error) {
 	)
 }
 
+func debugHTML(n *html.Node) {
+	var buf bytes.Buffer
+	if err := html.Render(&buf, n); err != nil {
+		log.Fatalf("Render error: %s", err)
+	}
+	fmt.Println(buf.String())
+}
+
 func movieIndex(scheme string, baseURL string) (bool, string, error) {
-	return getAndCheckStatus(
+	hasMovies := func(response *http.Response) (bool, error) {
+		doc, err := goquery.NewDocumentFromReader(response.Body)
+		if err != nil {
+			return false, err
+		}
+		numLi := doc.Find("li.movie").Length()
+		numberOfMoviesExpected := 50
+		if numLi == numberOfMoviesExpected {
+			return true, nil
+		}
+		return false, nil
+	}
+	return getAndCheckFunction(
 		scheme,
 		baseURL,
 		"/movies",
 		url.Values{},
 		"There is a movie index page",
-		http.StatusOK,
+		hasMovies,
 	)
 }
