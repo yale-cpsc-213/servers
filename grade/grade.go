@@ -2,7 +2,6 @@ package grade
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/yale-cpsc-213/hwutils/yeluke"
@@ -61,7 +60,6 @@ func Grading(mongoURL string) error {
 	if err != nil {
 		return err
 	}
-	log.Println(id2user)
 	fmt.Println("id,netid,github_username,num_passed,num_failed")
 	var wg sync.WaitGroup
 	wg.Add(len(submissions))
