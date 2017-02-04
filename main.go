@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/yale-cpsc-213/servers/grade"
 	"github.com/yale-cpsc-213/servers/questions"
 )
 
@@ -21,6 +22,11 @@ func main() {
 	}
 	url := os.Args[2]
 	switch os.Args[1] {
+	case "grade-all":
+		err := grade.Grading(url)
+		if err != nil {
+			log.Fatal(err)
+		}
 	case "test":
 		questions.TestAll(url, true)
 	default:

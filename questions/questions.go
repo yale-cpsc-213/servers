@@ -31,15 +31,17 @@ func statusText(pass bool) string {
 }
 
 // TestAll ...
-func TestAll(rawURL string, showOutput bool) error {
+func TestAll(rawURL string, showOutput bool) (int, int, error) {
 	doLog := func(args ...interface{}) {
 		if showOutput {
 			fmt.Println(args...)
 		}
 	}
+	numPass := 0
+	numFail := 0
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
-		return err
+		return numPass, numFail, err
 	}
 
 	questions := []serverQuestion{
@@ -51,10 +53,15 @@ func TestAll(rawURL string, showOutput bool) error {
 		// movieIndex,
 	}
 	for _, question := range questions {
-		passed, questionText, err := question(parsedURL.Scheme, parsedURL.Host)
-		doLog(statusText(passed && (err == nil)), "-", questionText)
+		passed, questionText, err2 := question(parsedURL.Scheme, parsedURL.Host)
+		doLog(statusText(passed && (err2 == nil)), "-", questionText)
+		if passed {
+			numPass++
+		} else {
+			numFail++
+		}
 	}
-	return nil
+	return numPass, numFail, err
 }
 
 func newClient() *http.Client {
